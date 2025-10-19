@@ -1,0 +1,31 @@
+# Node.js
+Backend/node_modules/
+Frontend/node_modules/
+# Build outputs
+Backend/dist/
+Frontend/dist/
+Backend/build/
+Frontend/build/
+
+# Enviroment & Logs
+.env
+*.log
+
+# TypeScript
+*.tsbuildinfo
+
+# Vite / React
+.vite/
+.DS_Store
+
+# IDEs
+.vscode/
+.idea/
+
+# Tests y coverage
+coverage/
+jest/
+__tests__/
+
+# Sistema
+Thumbs.db
