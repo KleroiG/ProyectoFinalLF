@@ -4,6 +4,8 @@ import { analisiSintactico } from "../controllers/ctrSintactico";
 import { AnalisisSemantico } from "../controllers/ctrSemantico";
 import { DecodificarJWT } from "../controllers/ctrDecodificador";
 import { codificarJWT } from "../controllers/ctrCodificar";
+import { verificadorJWT } from "../controllers/ctrVerificador";
+
 
 
 
@@ -73,7 +75,7 @@ router.post("/AnalisisSemantico", (req, res) => {
 });
 
 // Ruta para decodificar JWT
-router.post("/Decodificador", (req, res) => {
+router.post("/Decodificar", (req, res) => {
   const { token } = req.body;
   const parts = token.split(".");
 
@@ -106,5 +108,28 @@ router.post("/Codificar", (req, res) => {
   if (result.error) return res.status(400).json(result);
   res.json(result);
 });
+
+// Ruta para verificar JWT
+router.post("/verificador", (req, res) => {
+  const { token, secret } = req.body;
+
+  if (!token || !secret) {
+    return res.status(400).json({ error: "Debes enviar el token y la clave secreta" });
+  }
+
+  const parts = token.split(".");
+  if (parts.length !== 3) {
+    return res.status(400).json({ error: "El token no tiene tres partes válidas" });
+  }
+
+  const result = verificadorJWT(
+    { header: parts[0], payload: parts[1], signature: parts[2] },
+    secret
+  );
+
+  if (result.error) return res.status(400).json(result);
+  res.json(result);
+});
+
 
 export default router;
