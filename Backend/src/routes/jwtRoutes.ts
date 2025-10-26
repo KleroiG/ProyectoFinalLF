@@ -12,7 +12,7 @@ import TokenResult from "../modelos/ResultadosTokens";
 const router = Router();
 
 // Ruta para análisis léxico
-router.post("/AnalisisLexico", (req, res) => {
+router.post("/AnalisisLexico", async (req, res) => {
   const { token } = req.body;
   const result = AnalisisLexico(token);
 
@@ -20,11 +20,18 @@ router.post("/AnalisisLexico", (req, res) => {
     return res.status(400).json({ error: result });
   }
 
+  await TokenResult.create({
+    token,
+    tipo: "Analizado Léxicamente",
+    algoritmo: result.header,
+    detalles: result,
+  });
+
   res.json({ message: "Análisis léxico exitoso", parts: result });
 });
 
 // Ruta para análisis sintáctico
-router.post("/AnalisisSintactico", (req, res) => {
+router.post("/AnalisisSintactico", async (req, res) => {
   const { token } = req.body;
   const parts = token.split(".");
 
@@ -42,11 +49,18 @@ router.post("/AnalisisSintactico", (req, res) => {
     return res.status(400).json(result);
   }
 
+  await TokenResult.create({
+    token,
+    tipo: "Analizado Sintácticamente",
+    algoritmo: result.header.alg,
+    detalles: result,
+  });
+
   res.json(result);
 });
 
 // Ruta para análisis semántico
-router.post("/AnalisisSemantico", (req, res) => {
+router.post("/AnalisisSemantico", async (req, res) => {
   const { token } = req.body;
   const parts = token.split(".");
 
@@ -55,7 +69,6 @@ router.post("/AnalisisSemantico", (req, res) => {
   }
 
   try {
-    // Decodificar base64 y parsear JSON (como en la fase 2)
     const decode = (str: string) => {
       str = str.replace(/-/g, "+").replace(/_/g, "/");
       const pad = str.length % 4;
@@ -68,6 +81,13 @@ router.post("/AnalisisSemantico", (req, res) => {
 
     const result = AnalisisSemantico(header, payload);
 
+    await TokenResult.create({
+      token,
+      tipo: "Analizado Semánticamente",
+      algoritmo: header.alg,
+      detalles: result,
+    });
+
     res.json(result);
   } catch (err: any) {
     res.status(400).json({ error: "Error al decodificar el token o JSON inválido" });
@@ -75,7 +95,7 @@ router.post("/AnalisisSemantico", (req, res) => {
 });
 
 // Ruta para decodificar JWT
-router.post("/Decodificar", (req, res) => {
+router.post("/Decodificar", async (req, res) => {
   const { token } = req.body;
   const parts = token.split(".");
 
@@ -89,12 +109,19 @@ router.post("/Decodificar", (req, res) => {
     signature: parts[2],
   });
 
+  await TokenResult.create({
+    token,
+    tipo: "Decodificado",
+    algoritmo: result.header.alg,
+    detalles: result,
+  });
+
   if (result.error) return res.status(400).json(result);
   res.json(result);
 });
 
 // Ruta para codificar JWT
-router.post("/Codificar", (req, res) => {
+router.post("/Codificar", async (req, res) => {
   const { header, payload, secret } = req.body;
 
   if (!header || !payload || !secret) {
@@ -105,9 +132,17 @@ router.post("/Codificar", (req, res) => {
 
   const result = codificarJWT(header, payload, secret);
 
+  await TokenResult.create({
+    token: result.token,
+    tipo: "Codificado",
+    algoritmo: result.algorithm,
+    detalles: result,
+  });
+
   if (result.error) return res.status(400).json(result);
   res.json(result);
 });
+
 
 // Ruta para verificar JWT
 router.post("/Verificar", async (req, res) => {
@@ -127,10 +162,9 @@ router.post("/Verificar", async (req, res) => {
     secret
   );
 
-  // Guardar resultado en DB
   await TokenResult.create({
     token,
-    tipo: result.valid ? "válido" : "firma inválida",
+    tipo: "Verificado: " + result.valid ? "firma valida" : "firma invalida",
     algoritmo: result.algorithm,
     detalles: result,
   });
