@@ -1,12 +1,11 @@
 import express from "express";
 import jwtRoutes from "./routes/jwtRoutes";
+import { conectarDB } from "./configuracion/db";
 
 const app = express();
 app.use(express.json());
 
-app.get("/", (req, res) => {
-  res.send("Servidor backend corriendo correctamente 🚀");
-});
+conectarDB();
 
 app.use("/api/jwt", jwtRoutes);
 

@@ -52,13 +52,6 @@ export function verificadorJWT(parts: JWTSegments, secret: string) {
     const unsignedToken = `${parts.header}.${parts.payload}`;
     const recalculatedSignature = createSignature(algorithm, secret, unsignedToken);
 
-
-console.log("unsignedToken:", unsignedToken);
-console.log("recalculatedSignature:", recalculatedSignature);
-console.log("receivedSignature:", parts.signature);
-
-
-
     // Comparar firmas
     const valid = recalculatedSignature === parts.signature;
 

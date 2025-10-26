@@ -5,7 +5,7 @@ import { AnalisisSemantico } from "../controllers/ctrSemantico";
 import { DecodificarJWT } from "../controllers/ctrDecodificador";
 import { codificarJWT } from "../controllers/ctrCodificar";
 import { verificadorJWT } from "../controllers/ctrVerificador";
-
+import TokenResult from "../modelos/ResultadosTokens";
 
 
 
@@ -110,7 +110,7 @@ router.post("/Codificar", (req, res) => {
 });
 
 // Ruta para verificar JWT
-router.post("/verificador", (req, res) => {
+router.post("/Verificar", async (req, res) => {
   const { token, secret } = req.body;
 
   if (!token || !secret) {
@@ -127,8 +127,22 @@ router.post("/verificador", (req, res) => {
     secret
   );
 
+  // Guardar resultado en DB
+  await TokenResult.create({
+    token,
+    tipo: result.valid ? "válido" : "firma inválida",
+    algoritmo: result.algorithm,
+    detalles: result,
+  });
+
   if (result.error) return res.status(400).json(result);
   res.json(result);
+});
+
+// Ruta para obtener el historial de tokens analizados
+router.get("/Historial", async (req, res) => {
+  const registros = await TokenResult.find().sort({ fecha: -1 }).limit(20);
+  res.json(registros);
 });
 
 
