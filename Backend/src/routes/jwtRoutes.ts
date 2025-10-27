@@ -164,7 +164,7 @@ router.post("/Verificar", async (req, res) => {
 
   await TokenResult.create({
     token,
-    tipo: "Verificado: " + result.valid ? "firma valida" : "firma invalida",
+    tipo: result.valid ? "Verificado: firma valida" : "Verificado: firma invalida",
     algoritmo: result.algorithm,
     detalles: result,
   });
