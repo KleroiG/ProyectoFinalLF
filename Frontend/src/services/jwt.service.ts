@@ -1,6 +1,6 @@
 import type {GenerateJWTResponse, DecodeJWTRequest, DecodeJWTResponse} from '../types/jwt.types';
 
-const API_BASE_URL: string = "http://localhost:3000/api/jwt"
+const API_BASE_URL: string = "https://acceptable-olwen-proyectolf-1e69aa9f.koyeb.app/api/jwt"
 
 export class JWTService {
     static async generateJWT(data: { header: object; payload: object; secret: string }): Promise<GenerateJWTResponse> {

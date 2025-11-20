@@ -6,13 +6,16 @@ import { conectarDB } from "./configuracion/db";
 const app = express();
 
 app.use(cors({
-  origin: "http://localhost:5173",
+  origin: [
+    "http://localhost:5173",                 // Para desarrollo local
+    "https://acceptable-olwen-proyectolf-1e69aa9f.koyeb.app", // Backend
+    "https://tu-frontend.vercel.app"         // Frontend
+  ],
   methods: ["GET", "POST", "PUT", "DELETE"],
   allowedHeaders: ["Content-Type", "Authorization"]
 }));
 
 app.use(express.json());
-
 
 conectarDB();
 
