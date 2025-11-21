@@ -25,78 +25,68 @@ function createSignature(algorithm: string, secret: string, data: string): strin
       throw new Error("Algoritmo no soportado. Usa HS256 o HS384.");
   }
 
-  const signature = crypto
+  return crypto
     .createHmac(algo, secret)
     .update(data)
     .digest("base64")
     .replace(/=/g, "")
     .replace(/\+/g, "-")
     .replace(/\//g, "_");
-
-  return signature;
 }
 
-// Codifica un JWT dado el header, payload y la clave secreta
-export function codificarJWT(header: any, payload: any, secret: string) {
+export function codificarJWT(header: any, payload: any, secret: string): any {
   try {
-    // Analisis Lexico
-    const textoHeader = JSON.stringify(header);
-    const textoPayload = JSON.stringify(payload);
-
-    const lexicoHeader = AnalisisLexico(textoHeader);
-    const lexicoPayload = AnalisisLexico(textoPayload);
-
-    if (lexicoHeader.errors?.length || lexicoPayload.errors?.length) {
-      return {
-        fase: "léxico",
-        error: [...(lexicoHeader.errors || []), ...(lexicoPayload.errors || [])]
-      };
+    if (!header || typeof header !== "object") {
+      return { fase: "semántico", error: "Header inválido o ausente" };
+    }
+    if (!payload || typeof payload !== "object") {
+      return { fase: "semántico", error: "Payload inválido o ausente" };
+    }
+    if (!secret || typeof secret !== "string") {
+      return { fase: "semántico", error: "Secret inválido o ausente" };
+    }
+    if (!header.alg || !header.typ) {
+      return { fase: "semántico", error: "El header debe incluir 'alg' y 'typ'." };
     }
 
-    // Analisis Sintactico
-    let sintacticoHeader = null;
-    let sintacticoPayload = null;
-
-    try {
-      sintacticoHeader = analisisSintactico({
-        header: base64UrlEncode(textoHeader),
-        payload: base64UrlEncode(textoPayload),
-        signature: ""
-      });
-    } catch {
-      return { fase: "sintáctico", error: "Header inválido" };
-    }
-
-    try {
-      sintacticoPayload = JSON.parse(textoPayload);
-    } catch {
-      return { fase: "sintáctico", error: "Payload inválido" };
-    }
-
-    // Analisis semantico
     const semantico = analisisSemantico(header, payload);
-
     if (!semantico.valid) {
-      return {
-        fase: "semántico",
-        errores: semantico.errors
-      };
+      return { fase: "semántico", errores: semantico.errors || ["Error semántico desconocido"] };
     }
 
-    // Codificacion en base64
-    const headerBase64 = base64UrlEncode(textoHeader);
-    const payloadBase64 = base64UrlEncode(textoPayload);
+    const headerBase64 = base64UrlEncode(JSON.stringify(header));
+    const payloadBase64 = base64UrlEncode(JSON.stringify(payload));
+    const unsignedToken = `${headerBase64}.${payloadBase64}`;
 
-    const unsigned = `${headerBase64}.${payloadBase64}`;
+    let signature: string;
+    try {
+      signature = createSignature(header.alg, secret, unsignedToken);
+    } catch (err: any) {
+      return { fase: "semántico", error: `Algoritmo no soportado: ${header.alg}` };
+    }
 
-    // Firma hcmac
-    const signature = createSignature(header.alg, secret, unsigned);
+    const fullToken = `${unsignedToken}.${signature}`;
 
-    const tokenFinal = `${unsigned}.${signature}`;
+    const lexResult = AnalisisLexico(fullToken);
+    if (lexResult.errors && lexResult.errors.length > 0) {
+      return { fase: "léxico", error: lexResult.errors };
+    }
 
+    try {
+
+      analisisSintactico({
+        header: headerBase64,
+        payload: payloadBase64,
+        signature: signature
+      });
+    } catch (e: any) {
+      return { fase: "sintáctico", error: e?.message || "Error en análisis sintáctico" };
+    }
+
+    //Envia resultado final si todo esta bien
     return {
       message: "JWT generado exitosamente",
-      token: tokenFinal,
+      token: fullToken,
       algorithm: header.alg,
       fases: {
         lexico: "OK",
@@ -104,9 +94,10 @@ export function codificarJWT(header: any, payload: any, secret: string) {
         semantico: "OK"
       }
     };
+
   } catch (err: any) {
     return {
-      error: `Error inesperado: ${err.message}`
+      error: `Error inesperado: ${err?.message || String(err)}`
     };
   }
 }
