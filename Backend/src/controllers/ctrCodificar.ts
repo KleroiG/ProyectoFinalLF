@@ -1,4 +1,7 @@
 import crypto from "crypto";
+import { AnalisisLexico } from "./ctrLexico";
+import { analisisSintactico } from "./ctrSintactico";
+import { analisisSemantico } from "./ctrSemantico";
 
 function base64UrlEncode(str: string): string {
   return Buffer.from(str)
@@ -33,27 +36,77 @@ function createSignature(algorithm: string, secret: string, data: string): strin
   return signature;
 }
 
-export function codificarJWT(header: any, payload: any, secret: string): any {
+// Codifica un JWT dado el header, payload y la clave secreta
+export function codificarJWT(header: any, payload: any, secret: string) {
   try {
-    if (!header.alg || !header.typ)
-      return { error: "El header debe incluir 'alg' y 'typ'." };
+    // Analisis Lexico
+    const textoHeader = JSON.stringify(header);
+    const textoPayload = JSON.stringify(payload);
 
-    const headerBase64 = base64UrlEncode(JSON.stringify(header));
-    const payloadBase64 = base64UrlEncode(JSON.stringify(payload));
+    const lexicoHeader = AnalisisLexico(textoHeader);
+    const lexicoPayload = AnalisisLexico(textoPayload);
 
-    const unsignedToken = `${headerBase64}.${payloadBase64}`;
-    const signature = createSignature(header.alg, secret, unsignedToken);
+    if (lexicoHeader.errors?.length || lexicoPayload.errors?.length) {
+      return {
+        fase: "léxico",
+        error: [...(lexicoHeader.errors || []), ...(lexicoPayload.errors || [])]
+      };
+    }
 
-    const fullToken = `${unsignedToken}.${signature}`;
+    // Analisis Sintactico
+    let sintacticoHeader = null;
+    let sintacticoPayload = null;
+
+    try {
+      sintacticoHeader = analisisSintactico({
+        header: base64UrlEncode(textoHeader),
+        payload: base64UrlEncode(textoPayload),
+        signature: ""
+      });
+    } catch {
+      return { fase: "sintáctico", error: "Header inválido" };
+    }
+
+    try {
+      sintacticoPayload = JSON.parse(textoPayload);
+    } catch {
+      return { fase: "sintáctico", error: "Payload inválido" };
+    }
+
+    // Analisis semantico
+    const semantico = analisisSemantico(header, payload);
+
+    if (!semantico.valid) {
+      return {
+        fase: "semántico",
+        errores: semantico.errors
+      };
+    }
+
+    // Codificacion en base64
+    const headerBase64 = base64UrlEncode(textoHeader);
+    const payloadBase64 = base64UrlEncode(textoPayload);
+
+    const unsigned = `${headerBase64}.${payloadBase64}`;
+
+    // Firma hcmac
+    const signature = createSignature(header.alg, secret, unsigned);
+
+    const tokenFinal = `${unsigned}.${signature}`;
 
     return {
       message: "JWT generado exitosamente",
-      token: fullToken,
-      header,
-      payload,
-      algorithm: header.alg
+      token: tokenFinal,
+      algorithm: header.alg,
+      fases: {
+        lexico: "OK",
+        sintactico: "OK",
+        semantico: "OK"
+      }
     };
   } catch (err: any) {
-    return { error: `Error al generar el token: ${err.message}` };
+    return {
+      error: `Error inesperado: ${err.message}`
+    };
   }
 }
