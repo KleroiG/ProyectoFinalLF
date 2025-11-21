@@ -161,7 +161,7 @@ router.post("/Codificar", async (req, res) => {
   // Si hubo error en alguna fase
   if (!result.token) {
     await TokenResult.create({
-      token: null,
+      token: result,
       tipo: "Codificación Fallida",
       algoritmo: header?.alg || "No disponible",
       detalles: result,
