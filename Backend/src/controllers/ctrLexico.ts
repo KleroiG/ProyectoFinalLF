@@ -31,7 +31,7 @@ export interface LexResult {
  */
 function isBase64Url(str: string): boolean {
   // empty string invalid
-  if (!str || str.length === 0) return false;
+  if (str === "") return true;
   const re = /^[A-Za-z0-9\-_]+$/;
   return re.test(str);
 }

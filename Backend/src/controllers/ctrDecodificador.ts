@@ -2,6 +2,7 @@ import { JWTSegments } from "./ctrLexico";
 
 // Se valida que una cadena sea Base64URL
 function validarBase64Url(str: string): boolean {
+  if (str === "") return true;
   // Solo caracteres válidos del alfabeto Base64URL
   return /^[A-Za-z0-9\-_]+$/.test(str);
 }
@@ -23,7 +24,7 @@ export function decodeBase64Url(str: string): string {
 export function DecodificarJWT(parts: JWTSegments) {
   const errores: string[] = [];
 
-//Validacion léxica
+  //Validacion léxica
   if (!validarBase64Url(parts.header)) {
     errores.push("Error léxico: el header contiene caracteres inválidos");
   }
@@ -44,7 +45,7 @@ export function DecodificarJWT(parts: JWTSegments) {
     };
   }
 
-//Decodificación
+  //Decodificación
   let headerDecoded = "";
   let payloadDecoded = "";
 
@@ -81,6 +82,33 @@ export function DecodificarJWT(parts: JWTSegments) {
       error: "Payload decodificado no es un JSON válido"
     };
   }
+  const now = Math.floor(Date.now() / 1000);
+  if ("exp" in payloadJSON) {
+    if (typeof payloadJSON.exp !== "number") {
+      return {
+        fase: "sintáctico",
+        valido: false,
+        error: "'exp' en payload no es numérico"
+      };
+    }
+    if (payloadJSON.exp <= now) {
+      return {
+        fase: "semántico",
+        valido: false,
+        error: "El token ha expirado",
+        header: headerJSON,
+        payload: payloadJSON,
+        raw: {
+          headerDecoded,
+          payloadDecoded,
+          signature: parts.signature
+        }
+      };
+    }
+  }
+
+
+
 
   return {
     message: "Decodificación exitosa",

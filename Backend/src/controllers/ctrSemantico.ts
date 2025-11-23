@@ -44,10 +44,19 @@ export function analisisSemantico(header: any, payload: any): SemanticResult {
       symbolTable.push({ name: k, type: Array.isArray(v) ? "array" : (v === null ? "null" : t), value: v });
     }
 
-    // Claim-type validations
-    if ("exp" in payload && typeof payload.exp !== "number") errors.push("'exp' debe ser numérico (timestamp en segundos)");
-    if ("iat" in payload && typeof payload.iat !== "number") errors.push("'iat' debe ser numérico (timestamp en segundos)");
-    if ("iss" in payload && typeof payload.iss !== "string") errors.push("'iss' debe ser una cadena de texto");
+    // Validar claim 'exp' y relación con 'iat' si existen
+    if ("exp" in payload) {
+      if (typeof payload.exp !== "number") {
+        errors.push("'exp' debe ser un número (segundos desde epoch)");
+      } else {
+        symbolTable.push({ name: "exp", type: "number", value: payload.exp });
+        if ("iat" in payload && typeof payload.iat === "number") {
+          if (payload.exp <= payload.iat) {
+            errors.push("'exp' debe ser mayor que 'iat'");
+          }
+        }
+      }
+    }
     if ("aud" in payload && !(typeof payload.aud === "string" || Array.isArray(payload.aud))) errors.push("'aud' debe ser string o array");
 
     // Temporal relations
@@ -60,10 +69,9 @@ export function analisisSemantico(header: any, payload: any): SemanticResult {
       if ("iat" in payload && typeof payload.iat === "number" && payload.exp <= payload.iat) errors.push("'exp' debe ser mayor que 'iat'");
     }
 
-    // Optional: check standard claims presence recommended
-    const recommended = ["sub", "exp", "iat"];
+    const recommended = ["sub", "username", "exp", "iat", "role", "aud"];
     const missingRecommended = recommended.filter(r => !(r in payload));
-    if (missingRecommended.length > 0) warnings.push(`Faltan claims recomendados: ${missingRecommended.join(", ")}`);
+    if (missingRecommended.length > 0) warnings.push(`Faltan claims: ${missingRecommended.join(", ")}`);
   }
 
   if (errors.length > 0) {

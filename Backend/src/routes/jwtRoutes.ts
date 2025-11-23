@@ -150,13 +150,19 @@ router.post("/Decodificar", async (req, res) => {
 router.post("/Codificar", async (req, res) => {
   const { header, payload, secret } = req.body;
 
-  if (!header || !payload || !secret) {
+  // si algoritmo es 'none' no se requiere secret
+  if (!header || !payload) {
     return res.status(400).json({
-      error: "Debes enviar header, payload y secret"
+      error: "Debes enviar header y payload"
+    });
+  }
+  if (header?.alg !== "none" && !secret) {
+    return res.status(400).json({
+      error: "Debes enviar secret para algoritmos distintos de 'none'"
     });
   }
 
-  const result = codificarJWT(header, payload, secret);
+  const result = codificarJWT(header, payload, secret || "");
 
   // Si hubo error en alguna fase
   if (!result.token) {
@@ -184,8 +190,8 @@ router.post("/Codificar", async (req, res) => {
 router.post("/Verificar", async (req, res) => {
   const { token, secret } = req.body;
 
-  if (!token || !secret) {
-    return res.status(400).json({ error: "Debes enviar el token y la clave secreta" });
+  if (!token) {
+    return res.status(400).json({ error: "Debes enviar el token" });
   }
 
   const parts = token.split(".");
@@ -193,9 +199,22 @@ router.post("/Verificar", async (req, res) => {
     return res.status(400).json({ error: "El token no tiene tres partes válidas" });
   }
 
+  // intentar leer header para determinar alg
+  try {
+    const hdr = parts[0].replace(/-/g, "+").replace(/_/g, "/");
+    const pad = hdr.length % 4;
+    const hdrB64 = hdr + (pad ? "=".repeat(4 - pad) : "");
+    const headerObj = JSON.parse(Buffer.from(hdrB64, "base64").toString("utf8"));
+    if (headerObj?.alg !== "none" && !secret) {
+      return res.status(400).json({ error: "Debes enviar la clave secreta para verificar este token" });
+    }
+  } catch (e) {
+    return res.status(400).json({ error: "Header inválido o no decodificable" });
+  }
+
   const result = verificadorJWT(
     { header: parts[0], payload: parts[1], signature: parts[2] },
-    secret
+    secret || ""
   );
 
   await TokenResult.create({
@@ -216,7 +235,7 @@ router.get("/Historial", async (req, res) => {
 });
 
 // Ruta para análisis completo (léxico, sintáctico, semántico)
-router.post("/Analyze", (req, res) => {
+router.post("/Analisis", (req, res) => {
   const { token } = req.body;
   const lex = AnalisisLexico(token);
   if (lex.errors) return res.status(400).json({ phase: "lexico", errors: lex.errors });

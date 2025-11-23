@@ -49,10 +49,16 @@ export function codificarJWT(header: any, payload: any, secret: string): any {
       return { fase: "semántico", error: "El header debe incluir 'alg' y 'typ'." };
     }
 
+    const now = Math.floor(Date.now() / 1000);
+    if (!("exp" in payload) || typeof payload.exp !== "number") {
+      payload.exp = now + 25 * 60; // 25 minutos en segundos
+    }
+
     const semantico = analisisSemantico(header, payload);
     if (!semantico.valid) {
       return { fase: "semántico", errores: semantico.errors || ["Error semántico desconocido"] };
     }
+
 
     const headerBase64 = base64UrlEncode(JSON.stringify(header));
     const payloadBase64 = base64UrlEncode(JSON.stringify(payload));
@@ -60,7 +66,11 @@ export function codificarJWT(header: any, payload: any, secret: string): any {
 
     let signature: string;
     try {
-      signature = createSignature(header.alg, secret, unsignedToken);
+      if (header.alg === "none") {
+        signature = "";
+      } else {
+        signature = createSignature(header.alg, secret, unsignedToken);
+      }
     } catch (err: any) {
       return { fase: "semántico", error: `Algoritmo no soportado: ${header.alg}` };
     }

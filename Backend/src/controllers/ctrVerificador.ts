@@ -50,22 +50,51 @@ export function verificadorJWT(parts: JWTSegments, secret: string) {
 
     // Reconstruir la firma
     const unsignedToken = `${parts.header}.${parts.payload}`;
+    if (algorithm === "none") {
+      // Para 'none' se espera firma vacía
+      const signatureValid = parts.signature === "" || parts.signature === undefined;
+      // verificar exp si existe
+      const payloadJSON = JSON.parse(base64UrlDecode(parts.payload));
+      const now = Math.floor(Date.now() / 1000);
+      if ("exp" in payloadJSON) {
+        if (typeof payloadJSON.exp !== "number") return { error: "'exp' en payload no es numérico" };
+        if (payloadJSON.exp <= now) return { valid: false, message: "El token ha expirado", algorithm };
+      }
+      return signatureValid
+        ? { valid: true, message: "Firma válida (alg: none)", algorithm }
+        : { valid: false, message: "Firma inválida para alg 'none'", algorithm };
+    }
     const recalculatedSignature = createSignature(algorithm, secret, unsignedToken);
 
     // Comparar firmas
-    const valid = recalculatedSignature === parts.signature;
+    const signatureValid = recalculatedSignature === parts.signature;
 
-    return valid
-      ? {
-          valid: true,
-          message: "Firma válida: el token no ha sido alterado",
-          algorithm,
-        }
-      : {
-          valid: false,
-          message: "Firma inválida: el token ha sido modificado o la clave es incorrecta",
-          algorithm,
-        };
+    // Decodificar payload y verificar 'exp' si existe
+    const payloadJSON = JSON.parse(base64UrlDecode(parts.payload));
+    const now = Math.floor(Date.now() / 1000);
+    if ("exp" in payloadJSON) {
+      if (typeof payloadJSON.exp !== "number") {
+        return { error: "'exp' en payload no es numérico" };
+      }
+      if (payloadJSON.exp <= now) {
+        return { valid: false, message: "El token ha expirado", algorithm };
+      }
+    }
+
+    if (!signatureValid) {
+      return {
+        valid: false,
+        message: "Firma inválida: el token ha sido modificado o la clave es incorrecta",
+        algorithm,
+      };
+    }
+
+    return {
+      valid: true,
+      message: "Firma válida: el token no ha sido alterado",
+      algorithm,
+      payload: payloadJSON,
+    };
   } catch (err: any) {
     return { error: `Error al verificar el JWT: ${err.message}` };
   }

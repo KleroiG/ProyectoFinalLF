@@ -42,7 +42,7 @@ export function parseJSON(input: string): any {
 
   function parseString(): string {
     if (input[i] !== '"') throw new JSONParseError("Expected string", i);
-    i++; // skip "
+    i++;
     let result = "";
     while (i < n) {
       const ch = input[i];
@@ -109,7 +109,6 @@ export function parseJSON(input: string): any {
   }
 
   function parseArray(): any[] {
-    // assumes input[i] === '['
     i++;
     const arr: any[] = [];
     skipWS();
@@ -125,7 +124,6 @@ export function parseJSON(input: string): any {
   }
 
   function parseObject(): Record<string, any> {
-    // assumes input[i] === '{'
     i++;
     const obj: Record<string, any> = {};
     skipWS();
@@ -155,7 +153,7 @@ export function parseJSON(input: string): any {
  */
 export function analisisSintactico(parts: JWTSegments): { header?: any; payload?: any; error?: string } {
   try {
-    // decode base64url
+    // Se decodifica base64url
     const decode = (s: string) => {
       s = s.replace(/-/g, "+").replace(/_/g, "/");
       const pad = s.length % 4;
