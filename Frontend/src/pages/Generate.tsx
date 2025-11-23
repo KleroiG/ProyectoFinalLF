@@ -38,7 +38,7 @@ export default function Generate() {
                 const exp = Number(payloadObj.exp);
 
                 if (!isNaN(iat) && !isNaN(exp) && iat >= exp) {
-                    setPayloadError('El claim "iat" (issued at) debe ser menor que "exp" (expiration). El token no puede expirar antes de ser emitido.');
+                    setPayloadError('El campo "iat" debe ser menor que el campo "exp".');
                     return;
                 }
             }
