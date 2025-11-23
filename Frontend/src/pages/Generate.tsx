@@ -7,7 +7,7 @@ import {JSONService} from "../services/json.service.ts";
 
 export default function Generate() {
     const [header, setHeader] = useState('{\n  "typ": "JWT",\n  "alg": "HS256"\n}');
-    const [payload, setPayload] = useState('{\n  "sub": "1234567890",\n  "username": "John Doe",\n  "iat": 1516239022,\n  "exp": 2516638022\n},\n  "role": "user"\n,\n  "aud": "https://proyecto-final-lf.vercel.app"\n}');
+    const [payload, setPayload] = useState('{\n  "sub": "1234567890",\n  "username": "John Doe",\n  "iat": 1516239022,\n  "exp": 2516638022,\n  "role": "user",\n  "aud": "https://proyecto-final-lf.vercel.app"\n}');
     const [secretKey, setSecretKey] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [generatedToken, setGeneratedToken] = useState<string>('');
