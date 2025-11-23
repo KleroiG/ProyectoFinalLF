@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { FiKey, FiLoader, FiCopy, FiCheck, FiAlertCircle } from 'react-icons/fi';
 import JSONEditor from '../components/inputs/JSONEditor.tsx';
 import SecretKeyInput from '../components/inputs/SecretKeyInput.tsx';
@@ -7,19 +7,56 @@ import {JSONService} from "../services/json.service.ts";
 
 export default function Generate() {
     const [header, setHeader] = useState('{\n  "typ": "JWT",\n  "alg": "HS256"\n}');
-    const [payload, setPayload] = useState('{\n  "sub": "1234567890",\n  "username": "John Doe",\n  "iat": 1516239022,\n  "exp": 2516638022,\n  "role": "user",\n  "aud": "https://proyecto-final-lf.vercel.app"\n}');
+    const [payload, setPayload] = useState('{\n  "sub": "1234567890",\n  "username": "John Doe",\n  "iat": 1516239022,\n  "exp": 15166380229,\n  "role": "user",\n  "aud": "https://proyecto-final-lf.vercel.app"\n}');
     const [secretKey, setSecretKey] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [generatedToken, setGeneratedToken] = useState<string>('');
     const [error, setError] = useState<string>('');
     const [isCopied, setIsCopied] = useState(false);
+    const [payloadError, setPayloadError] = useState<string>('');
+
+    // Validaciones del payload
+    useEffect(() => {
+        if (!JSONService.isValidJSON(payload)) {
+            setPayloadError('');
+            return;
+        }
+
+        try {
+            const payloadObj = JSON.parse(payload);
+            const claims = Object.keys(payloadObj);
+
+            // Validar mínimo 6 claims
+            if (claims.length < 6) {
+                setPayloadError(`El payload debe contener al menos 6 claims. Actualmente tiene ${claims.length} claim${claims.length !== 1 ? 's' : ''}.`);
+                return;
+            }
+
+            // Validar que iat sea menor que exp
+            if (payloadObj.iat !== undefined && payloadObj.exp !== undefined) {
+                const iat = Number(payloadObj.iat);
+                const exp = Number(payloadObj.exp);
+
+                if (!isNaN(iat) && !isNaN(exp) && iat >= exp) {
+                    setPayloadError('El claim "iat" (issued at) debe ser menor que "exp" (expiration). El token no puede expirar antes de ser emitido.');
+                    return;
+                }
+            }
+
+            setPayloadError('');
+        } catch {
+            setPayloadError('');
+        }
+    }, [payload]);
+
+    const isPayloadValid = JSONService.isValidJSON(payload) && !payloadError;
 
     const isFormValid =
         header.trim() !== '' &&
         payload.trim() !== '' &&
         secretKey.trim() !== '' &&
         JSONService.isValidJSON(header) &&
-        JSONService.isValidJSON(payload);
+        isPayloadValid;
 
     const handleGenerate = async () => {
         if (!isFormValid) return;
@@ -84,7 +121,9 @@ export default function Generate() {
                             />
                         </div>
 
-                        <div className="group bg-slate-900/50 backdrop-blur-sm border border-white/10 rounded-2xl p-6 shadow-xl hover:border-purple-500/30 transition-all duration-300">
+                        <div className={`group bg-slate-900/50 backdrop-blur-sm border ${
+                            !isPayloadValid && payload.trim() !== '' ? 'border-rose-500/50' : 'border-white/10'
+                        } rounded-2xl p-6 shadow-xl hover:border-purple-500/30 transition-all duration-300`}>
                             <div className="flex items-center gap-3 mb-4">
                                 <div className="w-10 h-10 bg-gradient-to-br from-purple-600/20 to-pink-600/20 rounded-lg flex items-center justify-center">
                                     <span className="text-purple-400 font-bold text-sm">2</span>
@@ -101,6 +140,12 @@ export default function Generate() {
                                 placeholder='Ingresa el payload en formato JSON'
                                 rows={8}
                             />
+                            {payloadError && (
+                                <div className="mt-3 flex items-start gap-2 text-rose-400 text-sm bg-rose-950/30 border border-rose-500/20 rounded-lg p-3">
+                                    <FiAlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                    <span>{payloadError}</span>
+                                </div>
+                            )}
                         </div>
                     </div>
 
