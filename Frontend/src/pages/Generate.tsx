@@ -1,18 +1,57 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FiKey, FiLoader, FiCopy, FiCheck, FiAlertCircle } from 'react-icons/fi';
 import JSONEditor from '../components/inputs/JSONEditor.tsx';
 import SecretKeyInput from '../components/inputs/SecretKeyInput.tsx';
 import { JWTService } from '../services/jwt.service.ts';
-import {JSONService} from "../services/json.service.ts";
+import { JSONService } from "../services/json.service.ts";
 
 export default function Generate() {
     const [header, setHeader] = useState('{\n  "typ": "JWT",\n  "alg": "HS256"\n}');
-    const [payload, setPayload] = useState('{\n  "sub": "1234567890",\n  "name": "John Doe",\n  "iat": 1516239022\n}');
+    const [payload, setPayload] = useState('{\n  "sub": "1234567890",\n  "username": "John Doe",\n  "iat": 1516239022,\n  "exp": 15166380229,\n  "role": "user",\n  "aud": "https://proyecto-final-lf.vercel.app"\n}');
     const [secretKey, setSecretKey] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [generatedToken, setGeneratedToken] = useState<string>('');
     const [error, setError] = useState<string>('');
     const [isCopied, setIsCopied] = useState(false);
+    const [payloadError, setPayloadError] = useState<string>('');
+
+    // Validaciones del payload
+    useEffect(() => {
+        if (!JSONService.isValidJSON(payload)) {
+            setPayloadError('');
+            return;
+        }
+
+        try {
+            const payloadObj = JSON.parse(payload);
+            const claims = Object.keys(payloadObj);
+
+            // Validar mínimo 6 claims
+            if (claims.length < 6) {
+                setPayloadError(`El payload debe contener al menos 6 claims. Actualmente tiene ${claims.length} claim${claims.length !== 1 ? 's' : ''}.`);
+                return;
+            }
+
+            // Validar que iat sea menor que exp
+            if (payloadObj.iat !== undefined && payloadObj.exp !== undefined) {
+                const iat = Number(payloadObj.iat);
+                const exp = Number(payloadObj.exp);
+
+                if (!isNaN(iat) && !isNaN(exp) && iat >= exp) {
+                    setPayloadError('El campo "iat" debe ser menor que el campo "exp".');
+                    return;
+                }
+            }
+
+            setPayloadError('');
+        } catch {
+            setPayloadError('');
+        }
+    }, [payload]);
+
+    const isPayloadValid = JSONService.isValidJSON(payload) && !payloadError;
+
+
 
     const isFormValid =
         header.trim() !== '' &&
@@ -20,6 +59,7 @@ export default function Generate() {
         secretKey.trim() !== '' &&
         JSONService.isValidJSON(header) &&
         JSONService.isValidJSON(payload);
+    isPayloadValid;
 
     const handleGenerate = async () => {
         if (!isFormValid) return;
@@ -111,6 +151,12 @@ export default function Generate() {
                                 placeholder='Ingresa el payload en formato JSON'
                                 rows={8}
                             />
+                            {payloadError && (
+                                <div className="mt-3 flex items-start gap-2 text-rose-400 text-sm bg-rose-950/30 border border-rose-500/20 rounded-lg p-3">
+                                    <FiAlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
+                                    <span>{payloadError}</span>
+                                </div>
+                            )}
                         </div>
                     </div>
 
@@ -172,7 +218,7 @@ export default function Generate() {
                                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
                                     </div>
                                 )}
-                                
+
                                 {isLoading ? (
                                     <>
                                         <FiLoader className="w-6 h-6 animate-spin" />
@@ -202,8 +248,8 @@ export default function Generate() {
                                 className={`
                                     flex items-center gap-2 px-5 py-2.5 rounded-xl font-medium
                                     border transition-all duration-300
-                                    ${isCopied 
-                                        ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400' 
+                                    ${isCopied
+                                        ? 'bg-emerald-500/20 border-emerald-500/50 text-emerald-400'
                                         : 'bg-white/5 hover:bg-white/10 border-white/20 hover:border-white/30 text-gray-300 hover:text-white hover:scale-105'
                                     }
                                 `}
