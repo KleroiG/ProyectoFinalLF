@@ -12,13 +12,13 @@ interface JSONEditorProps {
 }
 
 export default function JSONEditor({
-                                       label,
-                                       value,
-                                       onChange,
-                                       placeholder,
-                                       contentEditable = true,
-                                       rows = 8
-                                   }: JSONEditorProps) {
+   label,
+   value,
+   onChange,
+   placeholder,
+   contentEditable = true,
+   rows = 8
+}: JSONEditorProps) {
     const [isFocused, setIsFocused] = useState(false);
     const isValid = value.trim() === '' || JSONService.isValidJSON(value);
 

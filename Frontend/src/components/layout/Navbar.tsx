@@ -23,7 +23,6 @@ export default function Navbar({ isOpen, onToggle }: NavbarProps) {
                 </button>
             )}
 
-            {/* Sidebar */}
             <aside
                 className={`
                     fixed top-0 left-0 h-full z-40
@@ -31,7 +30,7 @@ export default function Navbar({ isOpen, onToggle }: NavbarProps) {
                     shadow-2xl shadow-black/20
                     transition-all duration-300 ease-in-out
                     overflow-hidden
-                    ${isOpen ? 'w-64' : 'w-20 lg:w-20'}
+                    ${isOpen ? 'w-64' : 'w-24 lg:w-24'}
                     ${isOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'}
                 `}
             >
@@ -83,7 +82,7 @@ export default function Navbar({ isOpen, onToggle }: NavbarProps) {
                         </div>
                     </div>
 
-                    <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-white/10 scrollbar-track-transparent">
+                    <nav className="flex-1 py-6 px-3 space-y-1 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-cyan-500/20 scrollbar-track-transparent hover:scrollbar-thumb-cyan-500/40 [&::-webkit-scrollbar]:w-1.5 [&::-webkit-scrollbar-thumb]:rounded-full [&::-webkit-scrollbar-track]:rounded-full">
                         {routes.map((route) => {
                             const Icon = route.icon;
                             const isActive = location.pathname === route.path;
@@ -95,8 +94,9 @@ export default function Navbar({ isOpen, onToggle }: NavbarProps) {
                                     onClick={() => window.innerWidth < 1024 && onToggle()}
                                     title={!isOpen ? route.name : ''}
                                     className={`
-                                        group relative flex items-center gap-3 px-4 py-3.5 rounded-xl
+                                        group relative flex items-center rounded-xl
                                         font-medium transition-all duration-300
+                                        ${isOpen ? 'gap-3 px-4 py-3.5' : 'w-14 h-14 justify-center'}
                                         ${isActive
                                             ? 'bg-gradient-to-r from-blue-600 to-cyan-600 text-white shadow-lg shadow-blue-500/25 scale-[1.02]'
                                             : 'text-gray-400 hover:text-white hover:bg-white/5 hover:scale-[1.02]'
@@ -107,7 +107,7 @@ export default function Navbar({ isOpen, onToggle }: NavbarProps) {
                                         <div className="absolute left-0 top-1/2 -translate-y-1/2 w-1 h-8 bg-cyan-300 rounded-r-full shadow-lg shadow-cyan-400/50"></div>
                                     )}
 
-                                    <div className="flex-shrink-0 flex items-center justify-center w-6 h-6 relative">
+                                    <div className="flex-shrink-0 flex items-center justify-center relative">
                                         <Icon className={`w-5 h-5 transition-transform duration-300 ${
                                             isActive ? 'scale-110' : 'group-hover:scale-110'
                                         }`} />

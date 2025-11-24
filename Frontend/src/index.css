@@ -49,6 +49,41 @@
   background: rgba(255, 255, 255, 0.3);
 }
 
+/* Estilos específicos para navbar scrollbar */
+.scrollbar-thumb-cyan-500\/20::-webkit-scrollbar-thumb {
+  background: rgba(6, 182, 212, 0.2);
+  border-radius: 9999px;
+}
+
+.scrollbar-thumb-cyan-500\/40:hover::-webkit-scrollbar-thumb {
+  background: rgba(6, 182, 212, 0.4);
+  border-radius: 9999px;
+}
+
+nav.scrollbar-thin::-webkit-scrollbar {
+  width: 6px;
+}
+
+nav.scrollbar-thin::-webkit-scrollbar-thumb {
+  background: rgba(6, 182, 212, 0.2);
+  border-radius: 9999px;
+  transition: background 0.3s ease;
+}
+
+nav.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background: rgba(6, 182, 212, 0.4);
+}
+
+nav.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+  margin: 12px 0;
+}
+
+nav.scrollbar-thin {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(6, 182, 212, 0.2) transparent;
+}
+
 .hover\:scrollbar-thumb-white\/30:hover::-webkit-scrollbar-thumb {
   background: rgba(255, 255, 255, 0.3);
 }

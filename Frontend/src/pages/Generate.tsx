@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { FiKey, FiLoader, FiCopy, FiCheck, FiAlertCircle } from 'react-icons/fi';
 import JSONEditor from '../components/inputs/JSONEditor.tsx';
 import SecretKeyInput from '../components/inputs/SecretKeyInput.tsx';
@@ -7,63 +7,26 @@ import {JSONService} from "../services/json.service.ts";
 
 export default function Generate() {
     const [header, setHeader] = useState('{\n  "typ": "JWT",\n  "alg": "HS256"\n}');
-    const [payload, setPayload] = useState('{\n  "sub": "1234567890",\n  "username": "John Doe",\n  "iat": 1516239022,\n  "exp": 15166380229,\n  "role": "user",\n  "aud": "https://proyecto-final-lf.vercel.app"\n}');
+    const [payload, setPayload] = useState('{\n  "sub": "1234567890",\n  "name": "John Doe",\n  "iat": 1516239022\n}');
     const [secretKey, setSecretKey] = useState('');
     const [isLoading, setIsLoading] = useState(false);
     const [generatedToken, setGeneratedToken] = useState<string>('');
     const [error, setError] = useState<string>('');
     const [isCopied, setIsCopied] = useState(false);
-    const [payloadError, setPayloadError] = useState<string>('');
-
-    // Validaciones del payload
-    useEffect(() => {
-        if (!JSONService.isValidJSON(payload)) {
-            setPayloadError('');
-            return;
-        }
-
-        try {
-            const payloadObj = JSON.parse(payload);
-            const claims = Object.keys(payloadObj);
-
-            // Validar mínimo 6 claims
-            if (claims.length < 6) {
-                setPayloadError(`El payload debe contener al menos 6 claims. Actualmente tiene ${claims.length} claim${claims.length !== 1 ? 's' : ''}.`);
-                return;
-            }
-
-            // Validar que iat sea menor que exp
-            if (payloadObj.iat !== undefined && payloadObj.exp !== undefined) {
-                const iat = Number(payloadObj.iat);
-                const exp = Number(payloadObj.exp);
-
-                if (!isNaN(iat) && !isNaN(exp) && iat >= exp) {
-                    setPayloadError('El campo "iat" debe ser menor que el campo "exp".');
-                    return;
-                }
-            }
-
-            setPayloadError('');
-        } catch {
-            setPayloadError('');
-        }
-    }, [payload]);
-
-    const isPayloadValid = JSONService.isValidJSON(payload) && !payloadError;
 
     const isFormValid =
         header.trim() !== '' &&
         payload.trim() !== '' &&
         secretKey.trim() !== '' &&
         JSONService.isValidJSON(header) &&
-        isPayloadValid;
+        JSONService.isValidJSON(payload);
 
     const handleGenerate = async () => {
         if (!isFormValid) return;
 
         setIsLoading(true);
 
-        const response = await JWTService.generateJWT({
+        const response = await JWTService.generate({
             header: JSON.parse(header),
             payload: JSON.parse(payload),
             secret: secretKey,
@@ -75,8 +38,14 @@ export default function Generate() {
             setGeneratedToken(response.token);
             setError('');
         } else {
-            setError(response.error || 'Error al generar el token');
-            setGeneratedToken('')
+            if ('errors' in response && response.errors && response.errors.length > 0) {
+                setError(response.errors.join('\n'));
+            } else if ('error' in response) {
+                setError(response.error || 'Error al generar el token');
+            } else {
+                setError('Error al generar el token');
+            }
+            setGeneratedToken('');
         }
     };
 
@@ -93,11 +62,15 @@ export default function Generate() {
             <div className="max-w-7xl mx-auto">
                 <div className="text-center mb-12">
                     <div className="relative inline-block mb-6">
-                        <div className="absolute inset-0 bg-gradient-to-br from-indigo-500/20 via-purple-500/20 to-pink-500/20 rounded-3xl blur-2xl animate-pulse"></div>
+                        <div
+                            className="absolute inset-0 bg-gradient-to-br from-cyan-500/20 via-blue-500/20 to-indigo-500/20 rounded-3xl blur-2xl animate-pulse"></div>
                     </div>
                     <h1 className="text-5xl font-bold mb-3 bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
                         Generar JSON Web Token
                     </h1>
+                    <p className="text-gray-400 text-lg">
+                        Creación y firma de tokens JWT personalizados
+                    </p>
                 </div>
 
                 <div className="grid lg:grid-cols-3 gap-6">
@@ -121,9 +94,7 @@ export default function Generate() {
                             />
                         </div>
 
-                        <div className={`group bg-slate-900/50 backdrop-blur-sm border ${
-                            !isPayloadValid && payload.trim() !== '' ? 'border-rose-500/50' : 'border-white/10'
-                        } rounded-2xl p-6 shadow-xl hover:border-purple-500/30 transition-all duration-300`}>
+                        <div className="group bg-slate-900/50 backdrop-blur-sm border border-white/10 rounded-2xl p-6 shadow-xl hover:border-purple-500/30 transition-all duration-300">
                             <div className="flex items-center gap-3 mb-4">
                                 <div className="w-10 h-10 bg-gradient-to-br from-purple-600/20 to-pink-600/20 rounded-lg flex items-center justify-center">
                                     <span className="text-purple-400 font-bold text-sm">2</span>
@@ -140,12 +111,6 @@ export default function Generate() {
                                 placeholder='Ingresa el payload en formato JSON'
                                 rows={8}
                             />
-                            {payloadError && (
-                                <div className="mt-3 flex items-start gap-2 text-rose-400 text-sm bg-rose-950/30 border border-rose-500/20 rounded-lg p-3">
-                                    <FiAlertCircle className="w-4 h-4 mt-0.5 flex-shrink-0" />
-                                    <span>{payloadError}</span>
-                                </div>
-                            )}
                         </div>
                     </div>
 
@@ -279,8 +244,22 @@ export default function Generate() {
                             <div className="flex-1">
                                 <h3 className="text-xl font-bold text-white mb-2">Error al Generar Token</h3>
                                 <div className="bg-rose-950/30 border border-rose-500/20 rounded-lg p-4">
-                                    <p className="text-rose-300 text-sm font-mono">{error}</p>
+                                    {error.split('\n').length > 1 ? (
+                                        <ul className="space-y-2">
+                                            {error.split('\n').map((err, idx) => (
+                                                <li key={idx} className="text-rose-300 text-sm font-mono flex items-start gap-2">
+                                                    <span className="text-rose-400 mt-1">•</span>
+                                                    <span>{err}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    ) : (
+                                        <p className="text-rose-300 text-sm font-mono">{error}</p>
+                                    )}
                                 </div>
+                                <p className="text-gray-400 text-sm mt-3">
+                                    Verifica que los datos del header y payload sean válidos en formato JSON.
+                                </p>
                             </div>
                         </div>
                     </div>

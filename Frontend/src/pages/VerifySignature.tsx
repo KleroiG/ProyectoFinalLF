@@ -1,7 +1,8 @@
 import {useState} from 'react';
-import {FiShield, FiLoader, FiAlertCircle, FiCheckCircle, FiLock, FiKey} from 'react-icons/fi';
+import {FiShield, FiLoader, FiAlertCircle, FiCheckCircle, FiKey} from 'react-icons/fi';
 import {JWTService} from "../services/jwt.service.ts";
 import SecretKeyInput from "../components/inputs/SecretKeyInput.tsx";
+import TokenInput from "../components/inputs/TokenInput.tsx";
 
 export default function VerifySignature() {
     const [token, setToken] = useState('');
@@ -10,25 +11,34 @@ export default function VerifySignature() {
     const [result, setResult] = useState<{ isValid: boolean; message: string } | null>(null);
     const [error, setError] = useState<string>('');
 
-    const isFormValid = token.split('.').length === 3 && secretKey.trim().length > 0;
+    const hasToken = token.trim().length > 0;
+    const hasSecretKey = secretKey.trim().length > 0;
+    const isFormValid = hasToken && hasSecretKey;
 
     const handleVerify = async () => {
         if (!isFormValid) return;
 
         setIsLoading(true);
+        setError('');
+        setResult(null);
 
-        const result = await JWTService.verifySignature(token, secretKey);
+        const response = await JWTService.verifySignature(token, secretKey);
         setIsLoading(false);
 
-        if (result.success) {
+        if (response.success) {
             setResult({
-                isValid: result.data.valid,
-                message: result.data.message,
+                isValid: true,
+                message: response.message,
             });
-
-            setError('');
         } else {
-            setError(result.error || 'Error desconocido durante la verificación');
+            // Priorizar el array de errores sobre el campo error
+            if ('errors' in response && response.errors && response.errors.length > 0) {
+                setError(response.errors.join('\n'));
+            } else if ('error' in response) {
+                setError(response.error || 'Error desconocido durante la verificación');
+            } else {
+                setError('Error desconocido durante la verificación');
+            }
             setResult(null);
         }
     };
@@ -44,6 +54,9 @@ export default function VerifySignature() {
                     <h1 className="text-5xl font-bold mb-3 bg-gradient-to-r from-indigo-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
                         Verificar Firma
                     </h1>
+                    <p className="text-gray-400 text-lg">
+                        Validación de autenticidad del JWT con clave secreta
+                    </p>
                 </div>
 
                 <div className="grid lg:grid-cols-3 gap-6">
@@ -51,39 +64,11 @@ export default function VerifySignature() {
                         {/* Token Input */}
                         <div
                             className="group bg-slate-900/50 backdrop-blur-sm border border-white/10 rounded-2xl p-6 shadow-xl hover:border-cyan-500/30 transition-all duration-300">
-                            <div className="flex items-center gap-3 mb-4">
-                                <div
-                                    className="w-10 h-10 bg-gradient-to-br from-cyan-600/20 to-blue-600/20 rounded-lg flex items-center justify-center">
-                                    <FiLock className="text-cyan-400 w-5 h-5"/>
-                                </div>
-                                <div>
-                                    <h3 className="text-white font-semibold">Token JWT</h3>
-                                    <p className="text-gray-500 text-xs">Pega aquí el token a verificar</p>
-                                </div>
-                            </div>
-                            <div className="space-y-2">
-                                <label className="block text-sm font-medium text-gray-300 mb-2">
-                                    Token Codificado
-                                </label>
-                                <textarea
-                                    value={token}
-                                    onChange={(e) => setToken(e.target.value)}
-                                    placeholder="eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ..."
-                                    rows={6}
-                                    className="
-                                        w-full px-4 py-3
-                                        bg-slate-950/50
-                                        border border-white/10 rounded-xl
-                                        text-gray-200 text-sm font-mono
-                                        placeholder-gray-500
-                                        focus:outline-none focus:ring-3 focus:ring-cyan-500/50 focus:border-cyan-500/50
-                                        transition-all duration-300
-                                        resize-none
-                                        scrollbar-thin scrollbar-thumb-white/20 scrollbar-track-transparent
-                                        hover:scrollbar-thumb-white/30
-                                    "
-                                />
-                            </div>
+                            <TokenInput
+                                value={token}
+                                onChange={setToken}
+                                label="Token Codificado"
+                            />
                         </div>
 
                         {/* Secret Key Input */}
@@ -185,10 +170,10 @@ export default function VerifySignature() {
                             <div className="space-y-3 mb-6">
                                 <div className="flex items-center justify-between text-sm">
                                     <span className="text-gray-400">Token:</span>
-                                    {token.split('.').length === 3 ? (
+                                    {hasToken ? (
                                         <span className="flex items-center gap-1.5 text-emerald-400 font-medium">
                                             <FiCheckCircle className="w-4 h-4"/>
-                                            Válido
+                                            Ingresado
                                         </span>
                                     ) : (
                                         <span className="flex items-center gap-1.5 text-amber-400 font-medium">
@@ -199,10 +184,10 @@ export default function VerifySignature() {
                                 </div>
                                 <div className="flex items-center justify-between text-sm">
                                     <span className="text-gray-400">Clave secreta:</span>
-                                    {secretKey.trim().length > 0 ? (
+                                    {hasSecretKey ? (
                                         <span className="flex items-center gap-1.5 text-emerald-400 font-medium">
                                             <FiCheckCircle className="w-4 h-4"/>
-                                            Proporcionada
+                                            Ingresada
                                         </span>
                                     ) : (
                                         <span className="flex items-center gap-1.5 text-amber-400 font-medium">
@@ -265,7 +250,18 @@ export default function VerifySignature() {
                             <div className="flex-1">
                                 <h3 className="text-xl font-bold text-white mb-2">Error en la Verificación</h3>
                                 <div className="bg-rose-950/30 border border-rose-500/20 rounded-lg p-4">
-                                    <p className="text-rose-300 text-sm font-mono">{error}</p>
+                                    {error.split('\n').length > 1 ? (
+                                        <ul className="space-y-2">
+                                            {error.split('\n').map((err, idx) => (
+                                                <li key={idx} className="text-rose-300 text-sm font-mono flex items-start gap-2">
+                                                    <span className="text-rose-400 mt-1">•</span>
+                                                    <span>{err}</span>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    ) : (
+                                        <p className="text-rose-300 text-sm font-mono">{error}</p>
+                                    )}
                                 </div>
                                 <p className="text-gray-400 text-sm mt-3">
                                     Verifica que el token y la clave secreta sean correctos.

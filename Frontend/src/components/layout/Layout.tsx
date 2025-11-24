@@ -25,7 +25,7 @@ export default function Layout() {
             )}
 
             {/* Contenido principal */}
-            <main className={`relative z-10 transition-all duration-300 ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-20'}`}>
+            <main className={`relative z-10 transition-all duration-300 ${isSidebarOpen ? 'lg:ml-64' : 'lg:ml-24'}`}>
                 <Outlet />
             </main>
         </div>

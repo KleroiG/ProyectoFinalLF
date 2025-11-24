@@ -64,7 +64,6 @@ export default function Home() {
     return (
         <div className="min-h-screen py-8 px-4">
             <div className="max-w-7xl mx-auto">
-                {/* Hero Section */}
                 <div className="text-center mb-16">
                     <div className="relative inline-block mb-8">
                         <div className="absolute inset-0 bg-gradient-to-br from-blue-500/20 via-purple-500/20 to-pink-500/20 rounded-3xl blur-3xl animate-pulse"></div>
@@ -78,10 +77,6 @@ export default function Home() {
                     <h1 className="text-6xl md:text-7xl font-bold mb-6 bg-gradient-to-r from-blue-400 via-purple-400 to-pink-400 bg-clip-text text-transparent">
                         JWT Pro Tools
                     </h1>
-
-                    <p className="text-xl md:text-2xl text-gray-300 mb-4 max-w-3xl mx-auto leading-relaxed">
-                        Herramientas profesionales para trabajar con <span className="text-blue-400 font-semibold">JSON Web Tokens</span>
-                    </p>
 
                     <p className="text-base text-gray-400 max-w-2xl mx-auto">
                         Genera, verifica, decodifica y analiza tokens JWT con nuestra suite completa de herramientas
